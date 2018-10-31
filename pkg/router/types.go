@@ -41,6 +41,7 @@ type headerParser struct {
 
 type matchable interface {
 	Match(headers types.HeaderMap, randomValue uint64) types.Route
+    SetMatcher(matcher interface{})
 }
 
 type info interface {

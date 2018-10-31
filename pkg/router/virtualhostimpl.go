@@ -27,6 +27,17 @@ import (
 	"github.com/markphelps/optional"
 )
 
+
+var virtualHostImplFactories map[string]RouteBase
+
+func init() {
+	virtualHostImplFactories = make(map[string]RouteBase)
+}
+
+func Register(routerType string, factory RouteBase) {
+	virtualHostImplFactories[routerType] = factory
+}
+
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*VirtualHostImpl, error) {
 	var virtualHostImpl = &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,
@@ -75,11 +86,10 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost, validateClusters bool) (*Vi
 			// todo delete hack
 			// hack here to do sofa's routing policy
 			for _, header := range route.Match.Headers {
-				if header.Name == types.SofaRouteMatchKey {
-					virtualHostImpl.routes = append(virtualHostImpl.routes, &SofaRouteRuleImpl{
-						RouteRuleImplBase: routeRuleImplBase,
-						matchValue:        header.Value,
-					})
+				if types.UseSofaRoute(header.Name) {
+					router := virtualHostImplFactories[types.SofaRouterType]
+					router.SetMatcher(header)
+					virtualHostImpl.routes = append(virtualHostImpl.routes,virtualHostImplFactories[types.SofaRouteMatchKey])
 				}
 			}
 		}
@@ -157,3 +167,5 @@ func (vce *VirtualClusterEntry) VirtualClusterName() string {
 
 	return vce.name
 }
+
+
